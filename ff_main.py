@@ -68,15 +68,22 @@ class Layer(nn.Linear):
             self.opt.step()
         return self.forward(x_pos).detach(), self.forward(x_neg).detach()
 
-def Channel(x): 
+# def Channel(x): 
+#     x = x.cpu().detach().numpy()
+#     # add some noise
+#     t = np.zeros(x.shape)
+#     for i in range(x.shape[0]):
+#         for j in range(x.shape[1]):
+#             noise = random.choice([0.01, 0, -0.01])
+#             t[i][j] = x[i][j] + noise
+#     return t
+
+def Channel(x):
     x = x.cpu().detach().numpy()
-    # add some noise
-    t = np.zeros(x.shape)
-    for i in range(x.shape[0]):
-        for j in range(x.shape[1]):
-            noise = random.choice([0.01, 0, -0.01])
-            t[i][j] = x[i][j] + noise
-    return t
+    stddev = np.sqrt(1 / (10 ** (6)))
+    noise = torch.normal(mean=0, std=stddev, size=x.shape).to(device)
+    noise = noise.cpu().detach().numpy()
+    return x + noise
 
 def dec_to_bin(input, out_length=4):
     tmp = str(bin(input))[2:]
@@ -122,12 +129,12 @@ if __name__ == "__main__":
     label_true, label_false, data = generate_data(50000)
 
     K = 8
-    N = 32
+    N = 24
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    net_in = Net([K, N, N], device)
-    net_out = Net([N + 4, N, K], device)
+    net_in = Net([K, 32, 14], device)
+    net_out = Net([14 + 4, 32, K], device)
 
     # training here
     x_pos = np.concatenate((label_true, data), axis=1)
